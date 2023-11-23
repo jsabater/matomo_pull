@@ -1,0 +1,95 @@
+# Global parameters, no need to modify /!\
+base_url_parameters:
+  expanded: 1
+  format: JSON
+  filter_limit: -1
+  module: API
+  period: day
+
+# Specify requests to be made in order to set the database properly
+requests:
+  visits:
+    url_parameters:
+      method: API.get
+      format_metrics: 1
+    need_transpose: True
+    index_column_new_name: date
+  pages:
+    url_parameters:
+      method: Actions.getPageUrls
+      flat: 1
+    date_range: True
+  page_titles:
+    url_parameters:
+      method: Actions.getPageTitles
+      flat: 1
+    date_range: True
+  referrers:
+    url_parameters:
+      method: Referrers.getReferrerType
+      format_metrics: 1
+    date_range: True
+  user_language:
+    url_parameters:
+      method: UserLanguage.getLanguage
+      period: range
+  downloads:
+    url_parameters:
+      method: Actions.getDownloads
+      flat: 1
+    date_range: True
+  entry_pages:
+    url_parameters:
+      method: Actions.getEntryPageUrls
+      flat: 1
+    date_range: True
+  entry_page_titles:
+    url_parameters:
+      method: Actions.getEntryPageTitles
+      flat: 1
+    date_range: True
+  exit_pages:
+    url_parameters:
+      method: Actions.getExitPageUrls
+      flat: 1
+    date_range: True
+  exit_page_titles:
+    url_parameters:
+      method: Actions.getExitPageTitles
+      flat: 1
+    date_range: True
+  users_country:
+    url_parameters:
+      method: UserCountry.getCountry
+      format_metrics: 1
+    date_range: True
+  users_city:
+    url_parameters:
+      method: UserCountry.getCity
+      format_metrics: 1
+    date_range: True
+  visits_duration:
+    url_parameters:
+      method: VisitorInterest.getNumberOfVisitsPerPage
+      format_metrics: 1
+    date_range: True
+  visits_number_of_page_per_visit:
+    url_parameters:
+      method: VisitorInterest.getNumberOfVisitsPerPage
+      format_metrics: 1
+    date_range: True
+  visits_per_number_of_visits:
+    url_parameters:
+      method: VisitorInterest.getNumberOfVisitsByVisitCount
+      format_metrics: 1
+      period: range
+  visits_per_returning_time:
+    url_parameters:
+      method: VisitorInterest.getNumberOfVisitsByDaysSinceLast
+      format_metrics: 1
+      period: range
+  device_type:
+    url_parameters:
+      method: DevicesDetection.getType
+      format_metrics: 1
+    date_range: True
