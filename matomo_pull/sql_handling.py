@@ -1,17 +1,19 @@
-import pandas as pd
+import warnings
+import pandas as pd, sys
 from . import settings as s
 
 
-def fill_database(data_objects):
+def fill_database(data_objects, table_schema):
     for table_name, data_object in data_objects.items():
         convert_data_object_to_sql(
             table_name,
+            table_schema,
             s.config['requests'][table_name],
             data_object
         )
 
 
-def convert_data_object_to_sql(table_name, table_params, data_object):
+def convert_data_object_to_sql(table_name, table_schema, table_params, data_object):
     df = pd.DataFrame(data_object)
     if table_params.get("need_transpose"):
         df = df.transpose()
@@ -27,14 +29,17 @@ def convert_data_object_to_sql(table_name, table_params, data_object):
         if s.is_database_created(table_name):
             res = s.connection.execute(
                 f"select column_name from information_schema.columns"
-                f" where table_name='{table_name}'"
+                f" where table_name='{table_name}' and table_schema='{table_schema}'"
             ).fetchall()
             database_cols = [i[0] for i in res]
             database_cols = list(set(database_cols) & set(df.columns.tolist()))
             df = df[database_cols]
-        df.to_sql(
-            table_name,
-            s.connection,
-            if_exists='append'
-        )
-        print(table_name)
+        with warnings.catch_warnings():
+            warnings.simplefilter(action='ignore', category=FutureWarning)
+            df.to_sql(
+                table_name,
+                s.connection,
+                table_schema,
+                if_exists='append'
+            )
+            print(f"{table_schema}.{table_name}")

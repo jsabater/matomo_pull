@@ -19,6 +19,8 @@ def init(data_file='config.yml', raw_database_variables={}):
         mtm_vars
     )
 
+    return mtm_vars
+
 
 def set_http_manager():
     return urllib3.PoolManager()
@@ -46,18 +48,21 @@ def set_mtm_vars(data={}):
         'start_date': datetime.strptime(data['start_date'], '%Y-%m-%d').date(),
         'end_date': datetime.strptime(data['end_date'], '%Y-%m-%d').date(),
         'token_auth': data['token_auth'],
-        'JWT_SECRET_KEY': os.environ['JWT_SECRET_KEY'],
+        'JWT_SECRET_KEY': os.environ.get('JWT_SECRET_KEY'),
         'POSTGRES_USER': (
-            os.environ.get('POSTGRES_USER') or data['POSTGRES_USER']
+            os.environ.get('POSTGRES_USER', 'matomo')
         ),
         'POSTGRES_PASSWORD': (
-            os.environ.get('POSTGRES_PASSWORD') or data['POSTGRES_PASSWORD']
+            os.environ.get('POSTGRES_PASSWORD')
         ),
         'POSTGRES_HOST': (
-            os.environ.get('POSTGRES_HOST') or data['POSTGRES_HOST']
+            os.environ.get('POSTGRES_HOST', '127.0.0.1')
         ),
         'POSTGRES_PORT': (
-            os.environ.get('POSTGRES_PORT') or data['POSTGRES_PORT']
+            os.environ.get('POSTGRES_PORT', 5432)
+        ),
+        'POSTGRES_SCHEMA': (
+            os.environ.get('POSTGRES_SCHEMA', 'public')
         )
     }
     return mtm_vars
@@ -116,18 +121,19 @@ def update_dates(mtm_vars):
     return mtm_vars
 
 
-def is_database_created(table_name='visits'):
+def is_database_created(table_name='visits', schema='matomo'):
     try:
-        return bool(connection.execute(f"select * from {table_name}"))
+        return bool(connection.execute(f"select * from {schema}.{table_name}"))
     except Exception:
         return False
 
 
 def update_start_date_regarding_database_state(mtm_vars):
-    if is_database_created():
+    schema = mtm_vars.get('POSTGRES_SCHEMA')
+    if is_database_created(schema=schema):
         last_update = (
             connection.execute(
-                "select date from visits order by date desc limit 1"
+                f"select date from {schema}.visits order by date desc limit 1"
             ).fetchall()[0][0]
         ).date()
         return last_update + timedelta(days=1)
