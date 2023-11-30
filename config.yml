@@ -64,7 +64,7 @@ requests:
       format_metrics: 1
       showAllGoalSpecificMetrics: 1
     need_transpose: True
-    index_column_new_column: date
+    index_column_new_name: date
   products:
     url_parameters:
       method: Goals.getItemsName
