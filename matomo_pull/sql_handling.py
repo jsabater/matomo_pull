@@ -9,11 +9,12 @@ def fill_database(data_objects, table_schema):
             table_name,
             table_schema,
             s.config['requests'][table_name],
+            s.mtm_vars['id_site'],
             data_object
         )
 
 
-def convert_data_object_to_sql(table_name, table_schema, table_params, data_object):
+def convert_data_object_to_sql(table_name, table_schema, table_params, id_site, data_object):
     df = pd.DataFrame(data_object)
     if table_params.get("need_transpose"):
         df = df.transpose()
@@ -21,6 +22,10 @@ def convert_data_object_to_sql(table_name, table_schema, table_params, data_obje
         df = df.rename(
             columns={"index": table_params.get("index_column_new_name")}
         )
+
+    # Add id_site column
+    df['id_site'] = id_site
+
     try:
         df['date'] = df['date'].apply(pd.to_datetime)
     except Exception:
