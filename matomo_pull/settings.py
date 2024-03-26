@@ -10,14 +10,10 @@ def init(data_file='config.yml', raw_database_variables={}):
     global http, config, mtm_vars, connection, raw_start_date
     http = set_http_manager()
     config = set_config(data_file)
-    connection = set_database_connection(raw_database_variables['db_name'])
-    mtm_vars = set_mtm_vars(
-        raw_database_variables
-    )
+    mtm_vars = set_mtm_vars(raw_database_variables)
     raw_start_date = mtm_vars['start_date']
-    mtm_vars = check_mtm_vars(
-        mtm_vars
-    )
+    mtm_vars = check_mtm_vars(mtm_vars)
+    connection = set_database_connection(mtm_vars)
 
     return mtm_vars
 
@@ -41,6 +37,7 @@ def set_config(config_file='config.yml'):
 
 
 def set_mtm_vars(data={}):
+    """ See: https://www.postgresql.org/docs/current/libpq-envars.html """
     mtm_vars = {
         'base_url': data['base_url'],
         'db_name': data['db_name'],
@@ -49,38 +46,31 @@ def set_mtm_vars(data={}):
         'end_date': datetime.strptime(data['end_date'], '%Y-%m-%d').date(),
         'token_auth': data['token_auth'],
         'JWT_SECRET_KEY': os.environ.get('JWT_SECRET_KEY'),
-        'POSTGRES_USER': (
-            os.environ.get('POSTGRES_USER', 'matomo')
-        ),
-        'POSTGRES_PASSWORD': (
-            os.environ.get('POSTGRES_PASSWORD')
-        ),
-        'POSTGRES_HOST': (
-            os.environ.get('POSTGRES_HOST', '127.0.0.1')
-        ),
-        'POSTGRES_PORT': (
-            os.environ.get('POSTGRES_PORT', 5432)
-        ),
-        'POSTGRES_SCHEMA': (
-            os.environ.get('POSTGRES_SCHEMA', 'public')
-        )
+        'POSTGRES_USER': os.environ.get('POSTGRES_USER', 'matomo'),
+        'POSTGRES_PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+        'POSTGRES_HOST': os.environ.get('POSTGRES_HOST', '127.0.0.1'),
+        'POSTGRES_PORT': os.environ.get('POSTGRES_PORT', 5432),
+        'POSTGRES_SCHEMA': os.environ.get('POSTGRES_SCHEMA', 'public'),
+        'POSTGRES_SSLMODE': os.environ.get('POSTGRES_SSLMODE', 'prefer'),
+        'POSTGRES_SSLROOTCERT': os.environ.get('POSTGRES_SSLROOTCERT', '/etc/ssl/certs/ISRG_Root_X1.pem')
     }
     return mtm_vars
 
 
-def set_database_connection(db_name):
+def set_database_connection(vars):
     try:
-        env = os.environ
         connection = sqlalchemy.create_engine(
-            f"postgresql://{env['POSTGRES_USER']}:{env['POSTGRES_PASSWORD']}"
-            f"@{env['POSTGRES_HOST']}:{env['POSTGRES_PORT']}"
-            f"/{db_name}"
+            f"postgresql://{vars['POSTGRES_USER']}:{vars['POSTGRES_PASSWORD']}"
+            f"@{vars['POSTGRES_HOST']}:{vars['POSTGRES_PORT']}"
+            f"/{vars['db_name']}"
+            f"?sslmode={vars['POSTGRES_SSLMODE']}"
+            f"&sslrootcert={vars['POSTGRES_SSLROOTCERT']}"
         )
         connection.connect()
     except Exception:
         raise ValueError(
             f"The Postgres database was wrongly configured."
-            f"Available variables are {env}."
+            f"Available variables are {vars}."
         )
 
     return connection
@@ -130,10 +120,11 @@ def is_database_created(table_name='visits', schema='matomo'):
 
 def update_start_date_regarding_database_state(mtm_vars):
     schema = mtm_vars.get('POSTGRES_SCHEMA')
+    id_site = mtm_vars.get('id_site')
     if is_database_created(schema=schema):
         last_update = (
             connection.execute(
-                f"select date from {schema}.visits order by date desc limit 1"
+                f"select date from {schema}.visits where id_site = {id_site} order by date desc limit 1"
             ).fetchall()[0][0]
         ).date()
         return last_update + timedelta(days=1)
